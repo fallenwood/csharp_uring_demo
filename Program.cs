@@ -7,7 +7,7 @@ namespace Concurrent
     {
         unsafe static void Main(string[] args)
         {
-            var select = new Select();
+            var select = new Poll();
             select.Run();
         }
     }

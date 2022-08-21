@@ -16,7 +16,6 @@ namespace Concurrent
 
             var s = socket.Handle.ToInt32();
             int on = 1;
-            // timeval timeout;
 
             setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
 
@@ -30,7 +29,6 @@ namespace Concurrent
             fds[0].fd = s;
             fds[0].events = POLLIN;
 
-            var timeout = 3 * 60 * 1000;
             var bytes = Encoding.UTF8.GetBytes("Hello world!");
 
             while (true)

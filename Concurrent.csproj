@@ -12,4 +12,8 @@
     <PackageReference Include="Tmds.LibC" Version="0.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Lib\" />
+  </ItemGroup>
+
 </Project>

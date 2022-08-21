@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -57,7 +57,6 @@ namespace Concurrent
                         socklen_t socklen = sizeof(sockaddr);
                         var newSock = accept(s, &addr, &socklen);
 
-                        // inet_ntop
                         SetNonBlocking(newSock);
                         EpollCtlAdd(epfd, newSock, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP);
                     }
@@ -69,6 +68,7 @@ namespace Concurrent
                         }
                         epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, null);
                         close(events[i].data.fd);
+                        continue;
                     }
 
                     if ((events[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0) {

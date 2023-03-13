@@ -1,20 +1,30 @@
-using System.Text;
-using System.Threading;
-using static Tmds.Linux.LibC;
+using System;
+using System.Net;
 
-namespace Concurrent
+namespace Concurrent;
+
+class Program
 {
-    class Program
+    unsafe static void Main(string[] args)
     {
-        unsafe static void Main(string[] args)
-        {
-#if false
-            var select = new Poll();
-            select.Run();
-#endif
-            var select = new EPoll();
-            select.Run();
+        var endpoint = new IPEndPoint(IPAddress.Any, 2300);
 
-        }
+#if false
+        Console.WriteLine("Running Poll Server");
+        var server = new PollServer(endpoint);
+        server.Run();
+#endif
+
+#if false
+        Console.WriteLine("Running EPoll Server");
+        var server = new EpollServer(endpoint);
+        server.Run();
+#endif
+
+#if true
+        Console.WriteLine("Running IO Uring Server");
+        var server = new UringServer(endpoint);
+        server.Run();
+#endif
     }
 }

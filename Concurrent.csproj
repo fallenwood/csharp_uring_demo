@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -10,10 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Tmds.LibC" Version="0.5.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Lib\" />
   </ItemGroup>
 
 </Project>

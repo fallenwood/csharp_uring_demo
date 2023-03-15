@@ -24,6 +24,7 @@ class Program
 #if true
         Console.WriteLine("Running IO Uring Server");
         var server = new UringServer(endpoint);
+        
         server.Run();
 #endif
     }

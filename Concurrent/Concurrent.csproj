@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <XMakeRoot>../liburing_reexport</XMakeRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tmds.LibC" Version="0.5.0" />
+  </ItemGroup>
+
+  <Target Name="XMake" BeforeTargets="Build">
+    <Exec WorkingDirectory="$(XMakeRoot)" Command="xmake" />
+    <Move SourceFiles="$(XMakeRoot)\build\linux\x86_64\release\liburing_reexport.so" DestinationFolder="$(OutDir)">
+       <Output 
+          TaskParameter="DestinationFiles"
+          ItemName="FilesWritten"/>
+     </Move>
+     <Message Text="@(FilesWritten)"/>
+  </Target>
+
+  
+  <Target Name="PublishRunWebpack" AfterTargets="Publish">
+    <Move SourceFiles="$(XMakeRoot)\build\linux\x86_64\release\liburing_reexport.so" DestinationFolder="$(PublishDir)">
+       <Output 
+          TaskParameter="DestinationFiles"
+          ItemName="FilesWritten"/>
+     </Move>
+     <Message Text="@(FilesWritten)"/>
+  </Target>
+</Project>

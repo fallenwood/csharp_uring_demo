@@ -75,7 +75,8 @@ public class EpollServer : IServer
                     epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, null);
                     close(events[i].data.fd);
                     continue;
-                } else {
+                }
+                else {
                     if ((events[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0) {
                         epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, null);
                         close(events[i].data.fd);

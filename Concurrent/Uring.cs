@@ -62,17 +62,15 @@ public unsafe class UringServer : IServer
         Console.WriteLine("Starting server loop");
         while (true)
         {
-            Console.WriteLine("Waiting cqe");
             var ret = io_uring_wait_cqe(ring, &cqe);
-            Console.WriteLine($"Waiting Cqe {ret}");
             var req = (Request*)cqe->user_data;
 
-            Console.WriteLine($"Handling event type");
+            // Console.WriteLine($"Handling event type {req->event_type}");
             switch (req->event_type)
             {
                 case EventType.EVENT_TYPE_ACCEPT:
                     {
-                        Console.WriteLine("Handling EVENT_TYPE_ACCEPT");
+                        // Console.WriteLine("Handling EVENT_TYPE_ACCEPT");
                         AddAcceptRequest(serverSocket, &clientAddr, &len, ring);
                         AddReadRequest(cqe->res, ring);
                         // free(req);
@@ -80,98 +78,98 @@ public unsafe class UringServer : IServer
                     }
                 case EventType.EVENT_TYPE_READ:
                     {
-                        Console.WriteLine("Handling EVENT_TYPE_READ");
+                        // Console.WriteLine("Handling EVENT_TYPE_READ");
                         if (cqe->res == 0)
                         {
                             Console.Error.WriteLine("Empty request!");
                             break;
                         }
-                        handle_client_request(req, ring);
-                        // free(req->iov[0].iov_base);
-                        // free(req);
+                        handleClientRequest(req, ring);
+                        // Marshal.FreeHGlobal(new IntPtr(req->iov.iov_base));
+                        // Marshal.FreeHGlobal(new IntPtr(req));
                         break;
                     }
                 case EventType.EVENT_TYPE_WRITE:
                     {
-                        Console.WriteLine("Handling EVENT_TYPE_WRITE");
-                        for (int i = 0; i < req->iovec_count; i++)
-                        {
-                            // free(req->iov[i].iov_base);
-                        }
-                        close(req->client_socket);
-                        // free(req);
+                        // Console.WriteLine("Handling EVENT_TYPE_WRITE");
+                        AddReadRequest(req->client_socket, ring);                        
+                        Marshal.FreeHGlobal(new IntPtr(req->iov.iov_base));
+                        Marshal.FreeHGlobal(new IntPtr(req));
                         break;
                     }
             }
 
-            Console.WriteLine("Will call io_uring_cqe_seen");
             io_uring_cqe_seen(ring, cqe);
         }
-
-        Console.WriteLine("The loop has ended unexpectedly");
     }
 
-    unsafe void handle_client_request(Request* req, io_uring* ring)
+    unsafe void handleClientRequest(Request* req, io_uring* ring)
     {
+        // Console.WriteLine($"Start {nameof(handleClientRequest)}");
         var sqe = io_uring_get_sqe(ring);
         req->event_type = EventType.EVENT_TYPE_WRITE;
-        var bytes = Encoding.UTF8.GetBytes("Hello world");
+        var bytes = Encoding.UTF8.GetBytes("Hello world\n");
 
         req->iovec_count = 1;
-        req->iov = Marshal.AllocHGlobal(sizeof(iovec));
-        var iov = Marshal.PtrToStructure<iovec>(req->iov);
 
         var iovBuf = Marshal.AllocHGlobal(READ_SZ);
-        iov.iov_base = iovBuf.ToPointer();
+        req->iov.iov_base = iovBuf.ToPointer();
+        req->iov.iov_len = bytes.Length;
         Marshal.Copy(bytes, 0, iovBuf, bytes.Length);
 
-        io_uring_prep_writev(sqe, req->client_socket, (iovec*)(req->iov.ToPointer()), Convert.ToUInt32(req->iovec_count), 0);
+        // Console.WriteLine("Prepare WriteV:" + Encoding.UTF8.GetString(bytes));
+        io_uring_prep_writev(sqe, req->client_socket, &(req->iov), Convert.ToUInt32(req->iovec_count), 0);
+        // Console.WriteLine("Set data");
         io_uring_sqe_set_data(sqe, req);
+        // Console.WriteLine("submit");
         io_uring_submit(ring);
+        // Console.WriteLine("finish submit");
+        // Console.WriteLine($"Finish {nameof(handleClientRequest)}");
     }
 
     unsafe int AddReadRequest(int clientSocket, io_uring* ring)
     {
+        Console.WriteLine($"Start {nameof(AddReadRequest)}");
+
         var sqe = io_uring_get_sqe(ring);
-        // TODO
-        var req = (Request*)Marshal.AllocHGlobal(sizeof(Request)).ToPointer();
+
+        var req = (Request*)Marshal.AllocHGlobal(sizeof(Request) + sizeof(iovec)).ToPointer();
         req->iovec_count = 1;
         req->event_type = EventType.EVENT_TYPE_READ;
         req->client_socket = clientSocket;
 
-        req->iov = Marshal.AllocHGlobal(sizeof(iovec));
-        var iov = Marshal.PtrToStructure<iovec>(req->iov);
-        iov.iov_len = READ_SZ;
-        iov.iov_base = Marshal.AllocHGlobal(READ_SZ).ToPointer();
+        req->iov.iov_len = READ_SZ;
+        req->iov.iov_base = Marshal.AllocHGlobal(READ_SZ).ToPointer();
 
         /* Linux kernel 5.5 has support for readv, but not for recv() or read() */
-        io_uring_prep_readv(sqe, clientSocket, (iovec*)req->iov.ToPointer(), 1, 0);
-        io_uring_sqe_set_data(sqe, &req);
+        io_uring_prep_readv(sqe, clientSocket, &(req->iov), 1, 0);
+        io_uring_sqe_set_data(sqe, req);
         io_uring_submit(ring);
+
+        // Console.WriteLine($"Finish {nameof(AddReadRequest)}");
         return 0;
     }
 
     unsafe int AddAcceptRequest(int server_socket, sockaddr_in* client_addr, socklen_t* client_addr_len, io_uring* ring)
     {
         var sqe = io_uring_get_sqe(ring);
-        Console.WriteLine($"Got SQE: {sqe->fd}");
-        // TODO
+        // Console.WriteLine($"Got SQE: {sqe->fd}");
+
         io_uring_prep_accept(
-            sqe,
-            server_socket,
-            (sockaddr*)client_addr,
-            client_addr_len,
-            0);
-        Console.WriteLine($"prepared sqe");
+         sqe,
+         server_socket,
+         (sockaddr*)client_addr,
+         client_addr_len,
+         0);
+
         var req = (Request*)Marshal.AllocHGlobal(sizeof(Request)).ToPointer();
         req->event_type = EventType.EVENT_TYPE_ACCEPT;
         req->iovec_count = 0;
 
-        Console.WriteLine("set data");
-        io_uring_sqe_set_data(sqe, &req);
-        Console.WriteLine("submit");
+        io_uring_sqe_set_data(sqe, req);
         io_uring_submit(ring);
 
+        Console.WriteLine($"Finish {nameof(AddAcceptRequest)}");
         return 0;
     }
 }
@@ -179,11 +177,11 @@ public unsafe class UringServer : IServer
 [StructLayout(LayoutKind.Sequential)]
 unsafe struct Request
 {
-    public EventType event_type { get; set; }
-    public int iovec_count { get; set; }
-    public int client_socket { get; set; }
+    public EventType event_type;
+    public int iovec_count;
+    public int client_socket;
     // public iovec[] iov;
-    public IntPtr iov;
+    public iovec iov;
 }
 
 enum EventType : int

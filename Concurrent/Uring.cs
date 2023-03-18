@@ -84,6 +84,7 @@ public unsafe class UringServer : IServer
                             Console.Error.WriteLine("Empty request!");
                             break;
                         }
+                        AddReadRequest(req->client_socket, ring);
                         handleClientRequest(req, ring);
                         // Marshal.FreeHGlobal(new IntPtr(req->iov.iov_base));
                         // Marshal.FreeHGlobal(new IntPtr(req));
@@ -92,7 +93,7 @@ public unsafe class UringServer : IServer
                 case EventType.EVENT_TYPE_WRITE:
                     {
                         // Console.WriteLine("Handling EVENT_TYPE_WRITE");
-                        AddReadRequest(req->client_socket, ring);                        
+                        // AddReadRequest(req->client_socket, ring);
                         Marshal.FreeHGlobal(new IntPtr(req->iov.iov_base));
                         Marshal.FreeHGlobal(new IntPtr(req));
                         break;
